@@ -12,11 +12,31 @@ public class ModelCode_CardGame {
     // [Problem 2] Generate All Possible Valid Hands from the Pocket Cards and store them in myMaxHeap
     public static void generateHands(Card[] thisPocket)
     {
+        // Pay attention that memory needs to be allocated for the heap!
+        myMaxHeap = new HandsMaxHeap(60000); // Generate memory in case of all combinations valid
+        
+        int n = thisPocket.length;
+
         // If thisPocket has less than 5 cards, no hand can be generated, thus the heap will be empty
+        if (n < 5) return;
         
         // Otherwise, generate all possible valid hands from thisPocket and store them in myMaxHeap
-
-        // Pay attention that memory needs to be allocated for the heap!
+        for (int i = 0; i < n - 4; i++) {
+            for (int j = i + 1; j < n - 3; j++) {
+                for (int k = j + 1; k < n - 2; k++) {
+                    for (int l = k + 1; l < n - 1; l++) {
+                        for (int m = l + 1; m < n; m++) {
+                            
+                            Hands hand = new Hands(thisPocket[i], thisPocket[j], thisPocket[k], thisPocket[l], thisPocket[m]);
+                            
+                            if (hand.isAValidHand()) {
+                                myMaxHeap.insert(hand);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Sorts the array of Cards in ascending order: ascending order of ranks; cards of equal ranks are sorted in ascending order of suits
@@ -72,6 +92,66 @@ public class ModelCode_CardGame {
             // Step 2:
             // - Remove the Cards used in the move from the pocket cards and update the Max Heap
             // - Print the remaining cards and the contents of the heap
+
+
+            // picks largest hand, if none just select 5 cards arbritarily
+            if (!myMaxHeap.isEmpty()) {
+                myMove = myMaxHeap.removeMax();
+            } else {
+                myMove = new Hands(myCards[0], myCards[1], myCards[2], myCards[3], myCards[4]);
+            }
+
+            // print move
+            System.out.print("Move " + (i + 1) + ": ");
+            myMove.printMyHand();
+            System.out.println();
+            
+            // remove cards
+            Card[] remainingCards = new Card[pocketSize - 5];
+            int remainingIndex = 0;
+            
+            // only add cards that were not used
+            for (int c = 0; c < pocketSize; c++) {
+                boolean isUsed = false;
+                for (int h = 0; h < 5; h++) {
+                    if (myCards[c].isMyCardEqual(myMove.getCard(h))) {
+                        isUsed = true;
+                        break;
+                    }
+                }
+                
+                if (!isUsed) {
+                    if (remainingIndex < remainingCards.length) {
+                        remainingCards[remainingIndex++] = myCards[c];
+                    }
+                }
+            }
+            
+            // create new array of cards with 5 less size
+            myCards = remainingCards;
+            pocketSize -= 5;
+
+            // regenerate heap with new set of cards
+            if (pocketSize >= 5) {
+                generateHands(myCards);
+            } else {
+                // clear heap after last hand is dealt
+                myMaxHeap = new HandsMaxHeap(0);
+            }
+
+            // Print the remaining cards
+            System.out.println("Remaining Cards:");
+            for (int k = 0; k < pocketSize; k++) {
+                myCards[k].printCard();
+            }
+            System.out.println("\n");
+            
+            // Print the contents of the heap
+            System.out.println("Heap Content:");
+            myMaxHeap.printHeap();
+            System.out.println("--------------------------------------------------");
+
+            
                       
         }
         

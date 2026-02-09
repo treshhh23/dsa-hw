@@ -8,9 +8,12 @@ public class HandsMaxHeap {
     // Constructor 1: creates an empty heap with a given capacity
     public HandsMaxHeap(int bufSize)
     {
-        // set capacity = bufSize, and size = 0
+        capacity = bufSize;
+        size = 0;
         // instantiate myHeap as a Hands array with capacity + 1 slots (think about why capacity + 1)
-        // finally, set the first element in the Hands array to a dummy Hand (using the default Hands() constructor)        
+        myHeap = new Hands[capacity + 1];
+        // finally, set the first element in the Hands array to a dummy Hand (using the default Hands() constructor)      
+        myHeap[0] = new Hands();  
     }
 
     // Constructor 2: constructs a heap out of the array someHands 
@@ -31,35 +34,54 @@ public class HandsMaxHeap {
     // the method should organize the array as a heap (disregarding the element at index 0) using the O(n)-time algorithm 
     private void buildMaxHeap()
     {
-
+        for(int i = size / 2; i >= 1; i--) {
+            downHeapify(i);
+        }
     }
   
     // [Problem 1] Implement Max Heap for 5-Card Hands
 
     // [Problem 1-1] Implement Private Utility Methods
     // 1. A private method calculating the parent index
-    private int parent(int index)
-    {
-
+    private int parent(int index) {
+        return index / 2;
     }
     
     // 2. A private method calculating the left-child index
-    private int leftChild(int index)
-    {
-        
+    private int leftChild(int index) {
+        return index * 2;
     }
 
     // 3. A private method calculating the right-child index
-    private int rightChild(int index)
-    {
-
+    private int rightChild(int index) {
+        return index * 2 + 1;
     }
 
     // [Problem 1-2] Implement the Downward Heap Reorganization Private Method from the provided index 
     // this is the percolateDown discussed in class
     private void downHeapify(int index)
     {
-      //percolateDown the Heap Node at index; stop when it fits         
+      //percolateDown the Heap Node at index; stop when it fits      
+        int child; 
+        Hands temp = myHeap[index];
+
+        while(leftChild(index) <= size) {
+            child = leftChild(index);
+
+            // Check if the right child is larger than left child, if it is, swap to right child
+            if(child != size && myHeap[child + 1].isMyHandLarger(myHeap[child])) {
+                child++;
+            }
+            
+            // If child is larger than parent, swap
+            if(myHeap[child].isMyHandLarger(temp)) {
+                myHeap[index] = myHeap[child];
+                index = child;
+            } else {
+                break;
+            }
+        }
+        myHeap[index] = temp;
     } 
 
     // [Problem 1-3] Implement Upward Heap Reorganization Private Method from the provided index 
@@ -68,7 +90,13 @@ public class HandsMaxHeap {
     {   
         // percolateUp the Heap Node at index; stop when it fits
         // for this, first copy the Heap Node at index into temp
-        // compare the temp node against the parent node and so on                    
+        // compare the temp node against the parent node and so on     
+        Hands temp = myHeap[index];    
+        while(index > 1 && temp.isMyHandLarger(myHeap[parent(index)])) {
+            myHeap[index] = myHeap[parent(index)];
+            index = parent(index);
+        }     
+        myHeap[index] = temp;
     }
 
 
@@ -79,21 +107,43 @@ public class HandsMaxHeap {
     public void insert(Hands thisHand)
     {
         // insert thisHand into the heap; if there is no room for insertion allocate a bigger array (the capacity of the new heap should be twice larger) and copy the data over     
+        if(size == capacity) {
+            // double array capacity if full
+            Hands[] newHeap = new Hands[(capacity * 2) + 1];
+            System.arraycopy(myHeap, 0, newHeap, 0, myHeap.length);
+            myHeap = newHeap;
+            capacity *= 2;
+        }
+
+        size++;
+        myHeap[size] = thisHand;
+        heapifyUp(size);
     }
 
     public Hands removeMax() throws RuntimeException
     {
-        //remove the largest Hand from the heap; if the heap is empty throw a RuntimeException
+        //remove the largest Hand from the heap
+        //if the heap is empty throw an exception
+        if(size == 0) throw new RuntimeException("Heap is empty");
+
+        Hands max = myHeap[1];
+        myHeap[1] = myHeap[size];
+        size--;
+        downHeapify(1);
+
+        return max;
     }
 
     public int getSize()
     {
         // return the size of the heap
+        return size;
     }
 
     public boolean isEmpty()
     {
         //return true if heap is empty; return false otherwise
+        return (size == 0);
     }
 
     public void printHeap()
@@ -102,17 +152,61 @@ public class HandsMaxHeap {
         //  For valid hands, print the hand using the respective method in Hands class
         //  For invalid hands, just print "--INV--"
         //  Use the required method in Hands class to determine whether a Hand is valid.
-        
+        for(int i = 1; i <= size; i++) {
+            if(myHeap[i].isAValidHand()) {
+                myHeap[i].printMyHand();
+            } else {
+                System.out.println("--INV--");
+            }
+            System.out.println("");
+        }        
     }
 
     // Sorts the array IN PLACE using the heap sort algorithm
     // Sorting IN PLACE means O(1) extra memory
     public static void heapSort(Hands myHands[])
     {
-        // Sort In place the incoming array myHands in DESCENDING order
-        // using the heap sort algorithm
+        int n = myHands.length;
+        
+        // build min heap
+        for (int i = n / 2 - 1; i >= 0; i--) {
+            heapSortHelper(myHands, i, n);
+        }
+        
+        // remove min value, add to end of array
+        for (int i = n - 1; i > 0; i--) {
+            Hands temp = myHands[0];
+            myHands[0] = myHands[i];
+            myHands[i] = temp;
+
+            heapSortHelper(myHands, 0, i);
+        }
     }
 
+    // helper function to implement percolateDown wiht 0 indexing
+    // need more parameters because static function, assume no object as reference
+    private static void heapSortHelper(Hands[] myHands, int index, int size) {
+        int child;
+        Hands temp = myHands[index];
+        
+        while ((2 * index + 1) < size) {
+            child = 2 * index + 1;
+
+            // Check if the right child is smaller than left child, if it is, swap to right child
+            if (child + 1 < size && myHands[child + 1].isMyHandSmaller(myHands[child])) {
+                child++;
+            }
+
+            // If child is smaller than parent, swap
+            if (myHands[child].isMyHandSmaller(temp)) {
+                myHands[index] = myHands[child];
+                index = child;
+            } else {
+                break;
+            }
+        }
+        myHands[index] = temp;
+    }
 
    // This is the Test Bench!!
 
@@ -442,10 +536,17 @@ public class HandsMaxHeap {
         totalTestCount++;
 
         // Add your own custom test here
-        // WARNING!! remove this line when adding test case here
-        System.out.println("Did you add the Custom Test Case?");
-        // WARNING!! remove this line when adding test case here
-        passed &= false;
+        HandsMaxHeap myMaxHeap = new HandsMaxHeap(2);
+        // Test Resize on Insert
+        myMaxHeap.insert(new Hands(new Card(2, 'C'), new Card(2, 'D'), new Card(2, 'H'), new Card(2, 'S'), new Card(3, 'C')));
+        myMaxHeap.insert(new Hands(new Card(3, 'C'), new Card(3, 'D'), new Card(3, 'H'), new Card(3, 'S'), new Card(4, 'C')));
+        
+        int oldCap = myMaxHeap.capacity;
+        // Insert 3rd item, should resize
+        myMaxHeap.insert(new Hands(new Card(4, 'C'), new Card(4, 'D'), new Card(4, 'H'), new Card(4, 'S'), new Card(5, 'C')));
+        
+        passed &= (myMaxHeap.capacity > oldCap);
+        passed &= (myMaxHeap.size == 3);
 
         // Tear Down
         totalPassed &= passed;
@@ -463,10 +564,15 @@ public class HandsMaxHeap {
         totalTestCount++;
 
         // Add your own custom test here
-        // WARNING!! remove this line when adding test case here
-        System.out.println("Did you add the Custom Test Case?");
-        // WARNING!! remove this line when adding test case here
-        passed &= false;
+        HandsMaxHeap myMaxHeap = new HandsMaxHeap(5);
+        // Test insertion of smallest hand first, then largest
+        Hands small = new Hands(new Card(2, 'C'), new Card(3, 'D'), new Card(4, 'H'), new Card(5, 'S'), new Card(7, 'C')); // Invalid/Low
+        Hands large = new Hands(new Card(10, 'S'), new Card(11, 'S'), new Card(12, 'S'), new Card(13, 'S'), new Card(14, 'S')); // Royal Flush
+        
+        myMaxHeap.insert(small);
+        myMaxHeap.insert(large);
+        
+        passed &= assertEquals(large, myMaxHeap.myHeap[1]);
 
         // Tear Down
         totalPassed &= passed;
@@ -649,10 +755,13 @@ public class HandsMaxHeap {
         totalTestCount++;
 
         // Add your own custom test here
-        // WARNING!! remove this line when adding test case here
-        System.out.println("Did you add the Custom Test Case?");
-        // WARNING!! remove this line when adding test case here
-        passed &= false;
+        HandsMaxHeap myMaxHeap = new HandsMaxHeap(5);
+        // Test removing from heap with single element
+        Hands h1 = new Hands(new Card(2, 'C'), new Card(2, 'D'), new Card(2, 'H'), new Card(2, 'S'), new Card(3, 'C'));
+        myMaxHeap.insert(h1);
+        
+        passed &= assertEquals(h1, myMaxHeap.removeMax());
+        passed &= (myMaxHeap.getSize() == 0);
 
         // Tear Down
         totalPassed &= passed;
@@ -670,10 +779,14 @@ public class HandsMaxHeap {
         totalTestCount++;
 
         // Add your own custom test here
-        // WARNING!! remove this line when adding test case here
-        System.out.println("Did you add the Custom Test Case?");
-        // WARNING!! remove this line when adding test case here
-        passed &= false;
+        HandsMaxHeap myMaxHeap = new HandsMaxHeap(5);
+        // Test exception
+        try {
+            myMaxHeap.removeMax();
+            passed &= false;
+        } catch (RuntimeException e) {
+            passed &= true;
+        }
 
         // Tear Down
         totalPassed &= passed;
