@@ -6,19 +6,7 @@ public class ModelCode_CardGame {
     public static Scanner myInputScanner;          
     
     public static void main(String args[]) throws Exception
-    {        
-        CardPool myCardPool;
-        Card[] aiCards, myCards;        
-        Hands aiHand, myHand;
-        
-        HandsBST aiBST; // you may replace this with your own HandsMaxHeap for improved performance.
-        HandsRBT myRBT;
-                
-        int aiPocketSize = POCKETSIZE, myPocketSize = POCKETSIZE;
-        int aiScore = 0, playerScore = 0; 
-        
-        myCardPool = new CardPool();         
-
+    {            
         // Turn-base AI (Aggresive) vs Player
 
         // General Rules
@@ -82,7 +70,130 @@ public class ModelCode_CardGame {
 
         // Step 3 - Report the Results
         //  - This part is easy.  Refer to the provided sample execution for printout format
+        CardPool myCardPool;
+        Card[] aiCards; 
+        Card[] myCards;        
+        Hands aiHand = null, myHand = null;
         
+        HandsBST aiBST; // you may replace this with your own HandsMaxHeap for improved performance.
+        HandsRBT myRBT;
+                
+        int aiPocketSize = POCKETSIZE, myPocketSize = POCKETSIZE;
+        int aiScore = 0, playerScore = 0; 
+        
+        myCardPool = new CardPool();         
+        myInputScanner = new Scanner(System.in);
+
+        // Step 1 - Initialization
+        // Get 25 cards for both AI and Player using getRandomCards 
+        aiCards = myCardPool.getRandomCards(POCKETSIZE);
+        myCards = myCardPool.getRandomCards(POCKETSIZE);
+        
+        // Sort their cards 
+        sortCards(aiCards);
+        sortCards(myCards);
+
+        aiBST = new HandsBST();
+        myRBT = new HandsRBT();
+        
+        // Populate the data structures with valid hands [cite: 378, 379]
+        generateHandsIntoBST(aiCards, aiBST);
+        generateHandsIntoRBT(myCards, myRBT);
+
+        // Step 2 - Game Loop Logic (5 Rounds)
+        for (int round = 0; round < 5; round++) {
+            
+            // Step 2-1 : Print Both AI and Player Pocket Cards for Strategy Analysis [cite: 368, 369]
+            System.out.println("AI Pocket Cards:");
+            for (int i = 0; i < aiPocketSize; i++) {
+                aiCards[i].printCard();
+                System.out.print(" ");
+            }
+            System.out.println();
+            
+            System.out.printf("My Pocket Cards (Count: %d)\n", myPocketSize);
+            for (int i = 0; i < myPocketSize; i++) {
+                System.out.printf("[%d]", i + 1);
+                myCards[i].printCard();
+                System.out.print(" ");
+            }
+            System.out.println();
+
+            // Check if RBT is empty and notify [cite: 398]
+            if (myRBT.isEmpty()) {
+                System.out.println("OUT OF HANDS!");
+            }
+
+            // Step 2-2 : Use the provided getUserHand() method to allow player to pick [cite: 399]
+            boolean validChoice = false;
+            while (!validChoice) {
+                myHand = getUserHand(myCards);
+                
+                // If the hand is not in the HandsRBT and the HandsRBT is not empty [cite: 401]
+                if (!myRBT.isEmpty() && myRBT.findNode(myHand) == null) {
+                    System.out.println("Cannot Pass! You still have valid 5-card hands to make a move.");
+                } else {
+                    validChoice = true;
+                }
+            }
+
+            // Step 2-3 : Save the chosen hand as "PLAYERHAND", and update pocket card and RBT [cite: 402]
+            if (!myRBT.isEmpty()) {
+                myRBT.deleteInvalidHands(myHand); // Delete hands that are no longer valid [cite: 403]
+            }
+            // Remove the consumed 5 cards from the pocket card, and reduce the pocket size by 5 [cite: 404]
+            myCards = removeConsumedCards(myCards, myHand);
+            myPocketSize -= 5;
+
+            // Step 2-4 : Construct the Aggressive AI Logic [cite: 405]
+            if (aiBST.isEmpty()) {
+                // Once out of valid hands, AI should pick any 5 cards to form a "pass" move [cite: 411]
+                aiHand = new Hands(aiCards[0], aiCards[1], aiCards[2], aiCards[3], aiCards[4]);
+            } else {
+                aiHand = aiBST.getMaxHand();
+            }
+            
+            // Remove the consumed 5 cards from AI pocket cards [cite: 408]
+            aiCards = removeConsumedCards(aiCards, aiHand);
+            aiPocketSize -= 5;
+            
+            // Regenerate AI BST efficiently after card removal [cite: 408]
+            aiBST = new HandsBST();
+            generateHandsIntoBST(aiCards, aiBST);
+
+            // Step 2-5 : Determine the Win/Lose result for this round [cite: 414]
+            System.out.print("My Hand: ");
+            myHand.printMyHand();
+            System.out.println();
+            
+            System.out.print("AI Hand: ");
+            aiHand.printMyHand();
+            System.out.println();
+
+            // Compare hands, and increment the score for the respective winning party [cite: 416]
+            if (myHand.isMyHandLarger(aiHand)) {
+                System.out.println("[RESULT] Player Wins This Round!\n");
+                playerScore++;
+            } else if (aiHand.isMyHandLarger(myHand)) {
+                System.out.println("[RESULT] AI Wins This Round!\n");
+                aiScore++;
+            } else {
+                System.out.println("[RESULT] Draw!\n");
+            }
+        }
+
+        // Step 3 - Report the Game Results [cite: 375, 418]
+        System.out.println("==== Game Result ====");
+        System.out.printf("Player Score: %d\n", playerScore);
+        System.out.printf("AI Score: %d\n", aiScore);
+        
+        if (playerScore > aiScore) {
+            System.out.println("<< Player Won >>");
+        } else if (aiScore > playerScore) {
+            System.out.println("<< AI Won >>");
+        } else {
+            System.out.println("<< It's a Tie! >>");
+        }
         myInputScanner.close();
     }
 
@@ -90,12 +201,44 @@ public class ModelCode_CardGame {
     {
         // Implement this if you are using the BST version for the Aggressive AI
         //Populate all valid hands into the BST
+        int n = cards.length;
+        // Generate all C(N, 5) combinations
+        for (int i = 0; i < n - 4; i++) {
+            for (int j = i + 1; j < n - 3; j++) {
+                for (int k = j + 1; k < n - 2; k++) {
+                    for (int l = k + 1; l < n - 1; l++) {
+                        for (int m = l + 1; m < n; m++) {
+                            Hands h = new Hands(cards[i], cards[j], cards[k], cards[l], cards[m]);
+                            if (h.isAValidHand()) {
+                                thisBST.insert(h); 
+                            }
+                        }
+                    }
+                }
+            }
+        }
     
     }
 
     public static void generateHandsIntoRBT(Card[] cards, HandsRBT thisRBT)
     {
         // Populate all valid hands into the RBT
+        int n = cards.length;
+        // Generate all C(N, 5) combinations
+        for (int i = 0; i < n - 4; i++) {
+            for (int j = i + 1; j < n - 3; j++) {
+                for (int k = j + 1; k < n - 2; k++) {
+                    for (int l = k + 1; l < n - 1; l++) {
+                        for (int m = l + 1; m < n; m++) {
+                            Hands h = new Hands(cards[i], cards[j], cards[k], cards[l], cards[m]);
+                            if (h.isAValidHand()) {
+                                thisRBT.insert(h);
+                            }
+                        }
+                    }
+                }
+            }
+        }   
     }
 
     public static void sortCards(Card[] cards)
@@ -112,6 +255,30 @@ public class ModelCode_CardGame {
                 cards[j] = cards[j-1]; 
             cards[j] = temp;
         }  
+    }
+
+    public static Card[] removeConsumedCards(Card[] pocket, Hands consumedHand) {
+        if (pocket.length < 5) return new Card[0];
+        Card[] newPocket = new Card[pocket.length - 5];
+        int newIdx = 0;
+        boolean[] removed = new boolean[pocket.length];
+        
+        for (int i = 0; i < 5; i++) {
+            Card c = consumedHand.getCard(i);
+            for (int j = 0; j < pocket.length; j++) {
+                if (!removed[j] && pocket[j].isMyCardEqual(c)) {
+                    removed[j] = true;
+                    break;
+                }
+            }
+        }
+        
+        for (int j = 0; j < pocket.length; j++) {
+            if (!removed[j]) {
+                newPocket[newIdx++] = pocket[j];
+            }
+        }
+        return newPocket;
     }
 
 

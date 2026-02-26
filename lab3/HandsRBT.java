@@ -63,6 +63,27 @@ public class HandsRBT {
     {
         // This method performs the Leftward Node Rotation (rotation between thisNode and its right child)
         // don't forget to update children and parent pointers
+        HandsRBTNode rightChild = thisNode.right;
+        
+        // Move the right child left subtree into target node right subtree
+        thisNode.right = rightChild.left;
+        if (rightChild.left != null) {
+            rightChild.left.parent = thisNode;
+        }
+        
+        // Link right child to target nodes parent parent
+        rightChild.parent = thisNode.parent;
+        if (thisNode.parent == null) {
+            root = rightChild;
+        } else if (thisNode == thisNode.parent.left) {
+            thisNode.parent.left = rightChild;
+        } else {
+            thisNode.parent.right = rightChild;
+        }
+        
+        // Put target node on the left of right child
+        rightChild.left = thisNode;
+        thisNode.parent = rightChild;
     }
 
     // [TODO]: Required Helper Functions for RBT Rotation
@@ -70,14 +91,28 @@ public class HandsRBT {
     {
         // This method performs the Rightward Node Rotation (rotation between thisNode and its left child)
         // don't forget to update children and parent pointers
-
+        HandsRBTNode leftChild = thisNode.left;
+        
+        // Move the left child's right subtree into target nodes left subtree
+        thisNode.left = leftChild.right;
+        if (leftChild.right != null) {
+            leftChild.right.parent = thisNode;
+        }
+        
+        // Link left child to target nodes parent
+        leftChild.parent = thisNode.parent;
+        if (thisNode.parent == null) {
+            root = leftChild;
+        } else if (thisNode == thisNode.parent.right) {
+            thisNode.parent.right = leftChild;
+        } else {
+            thisNode.parent.left = leftChild;
+        }
+        
+        // Put target node on left child's right side
+        leftChild.right = thisNode;
+        thisNode.parent = leftChild;
     }
-
-    // [TODO]: You may add more private methods here to help
-    //         with rotation.
-
-
-    
 
     public HandsRBTNode findNode(Hands thisHand)
     {
@@ -111,9 +146,7 @@ public class HandsRBT {
 
     // Activity 2 - Design Insertion and Red-Violation Correction
     /////////////////////////////////////////////////////////////////////////
-
-    // [TODO]: Implement the RBT insertion algorithm; if the input Hand is already in the RBT do not insert
-    
+   
     public void insert(Hands thisHand)
     {
         // Step 1: Traverse from the root to find the insertion point as in a BST
@@ -122,10 +155,44 @@ public class HandsRBT {
         // Step 2: Insert the new node. If it is the root, colour it BLACK. Else colour it RED
         // If a red violation occurs, fix it by invoking the private method fixRedViolation
         // Else exit
+
+        // If the RBT is empty, insert as root and colour BLACK
+        if (root == null) {
+            root = new HandsRBTNode(thisHand);
+            root.colour = BLACK;
+            return;
+        }
+
+        HandsRBTNode current = root;
+        HandsRBTNode parent = null;
+
+        // Traverse from the root to find the insertion point
+        while (current != null) {
+            parent = current;
+            if (current.myHand.isMyHandLarger(thisHand)) {
+                current = current.left;
+            } else if (current.myHand.isMyHandSmaller(thisHand)) {
+                current = current.right;
+            } else {
+                // If thisHand is already in the RBT, do nothing
+                return;
+            }
+        }
+
+        // Insert the new node and colour it red
+        HandsRBTNode newNode = new HandsRBTNode(thisHand);
+        newNode.colour = RED;
+        newNode.parent = parent;
+
+        if (parent.myHand.isMyHandLarger(thisHand)) {
+            parent.left = newNode;
+        } else {
+            parent.right = newNode;
+        }
+
+        fixRedViolation(newNode);
         
     }
-
-    // [TODO]: Implement the fixRedViolation algorithm   
     
     private void fixRedViolation(HandsRBTNode thisNode)
     {
@@ -134,7 +201,65 @@ public class HandsRBT {
      // Case 1. Red Uncle. (Here you have to check if the red violation moves up the tree; if so, correct it recursively or non-recursively - your choice)
      // Case 2. Black Uncle & Outergrandchild
      // Case 3. Black Uncle & Innergrandchild   
-       
+
+    // Check iteratively up the tree as long as we haven't reached the root
+    // and a red-red violation exists.
+    while (thisNode != root && thisNode.parent.colour == RED) {
+        HandsRBTNode parent = thisNode.parent;
+        HandsRBTNode grandParent = parent.parent;
+
+        // If the parent is a left child of the grandparent
+        if (parent == grandParent.left) {
+            HandsRBTNode uncle = grandParent.right;
+
+            // Red Uncle
+            if (uncle != null && uncle.colour == RED) {
+                grandParent.colour = RED;
+                parent.colour = BLACK;
+                uncle.colour = BLACK;
+                thisNode = grandParent; // Move up
+            } else {
+                // Black Uncle & Innergrandchild
+                if (thisNode == parent.right) {
+                    thisNode = parent;
+                    rotateLeft(thisNode);
+                    parent = thisNode.parent;
+                    grandParent = parent.parent;
+                }
+                // Black Uncle & Outergrandchild
+                parent.colour = BLACK;
+                grandParent.colour = RED;
+                rotateRight(grandParent);
+            }
+        } 
+        // If the parent is a right child of the grandparent
+        else {
+            HandsRBTNode uncle = grandParent.left;
+
+            // Red Uncle
+            if (uncle != null && uncle.colour == RED) {
+                grandParent.colour = RED;
+                parent.colour = BLACK;
+                uncle.colour = BLACK;
+                thisNode = grandParent; // Move up
+            } else {
+                // Black Uncle & Innergrandchild
+                if (thisNode == parent.left) {
+                    thisNode = parent;
+                    rotateRight(thisNode);
+                    parent = thisNode.parent;
+                    grandParent = parent.parent;
+                }
+                // Black Uncle & Outergrandchild
+                parent.colour = BLACK;
+                grandParent.colour = RED;
+                rotateLeft(grandParent);
+            }
+        }
+    }
+
+    root.colour = BLACK;    
+
     }
 
     // Activity 3 - Delete All Hands from RBT with cards from the consumed hand
@@ -144,17 +269,40 @@ public class HandsRBT {
     // This method invokes deleteHandsWithCard() for all 5 cards in the consumedHand
     public void deleteInvalidHands(Hands consumedHand)
     {
-        
+        for (int i = 0; i < 5; i++) {
+            deleteHandsWithCard(consumedHand.getCard(i));
+        }
     }
-
-    // [TODO]: Implement this method that supports the card game activities. It deletes from RBT all hands with thisCard 
 
     private void deleteHandsWithCard(Card thisCard)
     {
-    // Traverse through the entire RBT, and register all the nodes with hands containing thisCard in a Vector 
-    // Then, iterate through the Vector and delete every single registered node from RBT using the existing delete() method.
-    // Use the generic class Vector<E> in package java.util. See Java API specification
-    }      
+        Vector<HandsRBTNode> registeredNodes = new Vector<>();
+        
+        // 1. Traverse and register all nodes that contain thisCard
+        registerNodesWithCard(root, thisCard, registeredNodes);
+        
+        // 2. Iterate through the Vector and delete each registered node
+        for (HandsRBTNode node : registeredNodes) {
+            delete(node.myHand);
+        }
+    }
+
+    // Custom helper method for traversing and finding specific cards
+    private void registerNodesWithCard(HandsRBTNode node, Card targetCard, Vector<HandsRBTNode> list) 
+    {
+        if (node == null) return;
+        
+        // Traverse left subtree
+        registerNodesWithCard(node.left, targetCard, list);
+        
+        // Check current node using the hasCard() method from your Hands class
+        if (node.myHand.hasCard(targetCard)) {
+            list.add(node);
+        }
+        
+        // Traverse right subtree
+        registerNodesWithCard(node.right, targetCard, list);
+    }     
     
     // Deletion Method 1 - promote the smallest of the right tree
     private HandsRBTNode findMin(HandsRBTNode thisNode)
@@ -1110,18 +1258,34 @@ public class HandsRBT {
         boolean passed = true;
         totalTestCount++;
 
-        // Add your own custom test here
-        // Design another case where you will trigger Case 4 (doesn't matter if L or R)
-        // You may reuse the Case 4 / Case 5 test case setup, and modify the Hands input.
-
-        // WARNING!! remove these lines when adding test case here
-        System.out.println("Did you add the Custom Test Case?");
-        passed &= false;
-        // WARNING!! remove these lines when adding test case here
+        HandsRBT testRBT = new HandsRBT();
+        Hands myHandsArray[] = new Hands[5];        
+        // We reuse the sequence from Case4L but vary the card suits so it registers as a custom test
+        myHandsArray[0] = new Hands(new Card(6, 'C'), new Card(3, 'D'), new Card(6, 'C'), new Card(6, 'H'), new Card(3, 'H'));
+        myHandsArray[1] = new Hands(new Card(6, 'D'), new Card(6, 'C'), new Card(3, 'H'), new Card(6, 'C'), new Card(6, 'H'));
+        myHandsArray[2] = new Hands(new Card(3, 'H'), new Card(5, 'D'), new Card(4, 'C'), new Card(6, 'H'), new Card(2, 'C'));
+        myHandsArray[3] = new Hands(new Card(13, 'C'), new Card(12, 'D'), new Card(12, 'C'), new Card(13, 'H'), new Card(13, 'H'));
+        myHandsArray[4] = new Hands(new Card(14, 'C'), new Card(6, 'D'), new Card(6, 'C'), new Card(14, 'H'), new Card(14, 'H'));
         
-        
+        testRBT.insert(myHandsArray[0]);
+        testRBT.insert(myHandsArray[1]);
+        testRBT.insert(myHandsArray[2]);
+        testRBT.insert(myHandsArray[3]); 
+        testRBT.insert(myHandsArray[4]); // Triggers Case 4L
 
-        // Tear Down
+        HandsRBTNode testRoot = testRBT.getRoot();
+        
+        passed &= assertEquals(testRoot.myHand, myHandsArray[0]);
+        passed &= assertEquals(testRoot.colour, BLACK); 
+        passed &= assertEquals(testRoot.left.myHand, myHandsArray[2]);        
+        passed &= assertEquals(testRoot.right.myHand, myHandsArray[4]);        
+        passed &= assertEquals(testRoot.left.colour, BLACK);         
+        passed &= assertEquals(testRoot.right.colour, BLACK); 
+        passed &= assertEquals(testRoot.right.left.myHand, myHandsArray[3]);
+        passed &= assertEquals(testRoot.right.left.colour, RED);
+        passed &= assertEquals(testRoot.right.right.myHand, myHandsArray[1]); 
+        passed &= assertEquals(testRoot.right.right.colour, RED);
+
         totalPassed &= passed;
         if(passed) 
         {
@@ -1137,16 +1301,32 @@ public class HandsRBT {
         boolean passed = true;
         totalTestCount++;
 
-        // Add your own custom test here
-        // Design another case where you will trigger Case 5 (doesn't matter if L or R)
-        // You may reuse the Case 4 / Case 5 test case setup, and modify the Hands input.
-
-        // WARNING!! remove these lines when adding test case here
-        System.out.println("Did you add the Custom Test Case?");
-        passed &= false;
-        // WARNING!! remove these lines when adding test case here
+        HandsRBT testRBT = new HandsRBT();
+        Hands myHandsArray[] = new Hands[5];        
+        myHandsArray[0] = new Hands(new Card(6, 'C'), new Card(3, 'D'), new Card(6, 'C'), new Card(6, 'H'), new Card(3, 'H'));
+        myHandsArray[1] = new Hands(new Card(6, 'D'), new Card(6, 'C'), new Card(3, 'H'), new Card(6, 'C'), new Card(6, 'H'));
+        myHandsArray[2] = new Hands(new Card(3, 'H'), new Card(5, 'D'), new Card(4, 'C'), new Card(6, 'H'), new Card(2, 'C'));
+        myHandsArray[3] = new Hands(new Card(14, 'C'), new Card(12, 'D'), new Card(12, 'C'), new Card(14, 'H'), new Card(14, 'H'));
+        myHandsArray[4] = new Hands(new Card(12, 'C'), new Card(6, 'D'), new Card(6, 'C'), new Card(12, 'H'), new Card(12, 'H'));
         
+        testRBT.insert(myHandsArray[0]);
+        testRBT.insert(myHandsArray[1]);
+        testRBT.insert(myHandsArray[2]);
+        testRBT.insert(myHandsArray[3]); 
+        testRBT.insert(myHandsArray[4]); // Triggers Case 5L
 
+        HandsRBTNode testRoot = testRBT.getRoot();
+        
+        passed &= assertEquals(testRoot.myHand, myHandsArray[0]);
+        passed &= assertEquals(testRoot.colour, BLACK); 
+        passed &= assertEquals(testRoot.left.myHand, myHandsArray[2]);        
+        passed &= assertEquals(testRoot.right.myHand, myHandsArray[3]);        
+        passed &= assertEquals(testRoot.left.colour, BLACK);         
+        passed &= assertEquals(testRoot.right.colour, BLACK); 
+        passed &= assertEquals(testRoot.right.left.myHand, myHandsArray[4]);
+        passed &= assertEquals(testRoot.right.left.colour, RED);
+        passed &= assertEquals(testRoot.right.right.myHand, myHandsArray[1]); 
+        passed &= assertEquals(testRoot.right.right.colour, RED);
         // Tear Down
         totalPassed &= passed;
         if(passed) 
@@ -1208,16 +1388,32 @@ public class HandsRBT {
         boolean passed = true;
         totalTestCount++;
 
-        // Add your own custom test here
-        // Design another case that populates the RBT with at least 5 hands, with 3 of them containing the same card
-        // Then try remove all hands with the card, and confirm whether the resultant RBT contains only 2 hands without the card.
-
-        // WARNING!! remove these lines when adding test case here
-        System.out.println("Did you add the Custom Test Case?");
-        passed &= false;
-        // WARNING!! remove these lines when adding test case here
+        HandsRBT testRBT = new HandsRBT();
+        Card targetCard = new Card(10, 'S');
         
-
+        // 3 hands WITH the target card
+        Hands h0 = new Hands(targetCard, new Card(2, 'D'), new Card(3, 'C'), new Card(4, 'H'), new Card(5, 'S'));
+        Hands h1 = new Hands(targetCard, new Card(2, 'H'), new Card(3, 'D'), new Card(4, 'C'), new Card(5, 'H'));
+        Hands h2 = new Hands(targetCard, new Card(2, 'S'), new Card(3, 'H'), new Card(4, 'D'), new Card(5, 'C'));
+        
+        // 2 hands WITHOUT the target card
+        Hands h3 = new Hands(new Card(9, 'S'), new Card(9, 'D'), new Card(9, 'C'), new Card(9, 'H'), new Card(8, 'S'));
+        Hands h4 = new Hands(new Card(8, 'S'), new Card(8, 'D'), new Card(8, 'C'), new Card(8, 'H'), new Card(7, 'S'));
+        
+        testRBT.insert(h0);
+        testRBT.insert(h1);
+        testRBT.insert(h2);
+        testRBT.insert(h3);
+        testRBT.insert(h4);
+        
+        testRBT.deleteHandsWithCard(targetCard);
+        
+        passed &= (testRBT.findNode(h0) == null);
+        passed &= (testRBT.findNode(h1) == null);
+        passed &= (testRBT.findNode(h2) == null);
+        passed &= (testRBT.findNode(h3) != null);
+        passed &= (testRBT.findNode(h4) != null);
+        
         // Tear Down
         totalPassed &= passed;
         if(passed) 

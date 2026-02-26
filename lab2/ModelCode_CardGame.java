@@ -145,7 +145,7 @@ public class ModelCode_CardGame {
                 myCards[k].printCard();
             }
             System.out.println("\n");
-            
+             
             // Print the contents of the heap
             System.out.println("Heap Content:");
             myMaxHeap.printHeap();
