@@ -84,26 +84,23 @@ public class ModelCode_CardGame {
         myCardPool = new CardPool();         
         myInputScanner = new Scanner(System.in);
 
-        // Step 1 - Initialization
-        // Given the CardPool instance, get 25 cards (POCKETSIZE) for both AI and Player.
+        // Initialization, generate and sort cards into our data structures
         aiCards = myCardPool.getRandomCards(POCKETSIZE);
         myCards = myCardPool.getRandomCards(POCKETSIZE);
-        
-        // Sort their cards using sortCards(). Assign a serial number to Player's cards
+
         sortCards(aiCards);
         sortCards(myCards);
 
         aiBST = new HandsBST();
         myRBT = new HandsRBT();
         
-        // Populate the data structures with valid hands
         generateHandsIntoBST(aiCards, aiBST);
         generateHandsIntoRBT(myCards, myRBT);
 
-        // Step 2 - Game Loop Logic
+        // Game loop
         for (int round = 0; round < 5; round++) {
             
-            // Step 2-1 : Print Both AI and Player Pocket Cards for Strategy Analysis
+            // Print pocket cards for both players
             System.out.println("AI Pocket Cards:");
             for (int i = 0; i < aiPocketSize; i++) {
                 aiCards[i].printCard();
@@ -119,18 +116,17 @@ public class ModelCode_CardGame {
             }
             System.out.println();
 
-            // Also check if RBT is empty.  If yes, notify player that he/she is out of moves.
+            // Check if tree is empty to signify out of moves
             if (myRBT.isEmpty()) {
                 System.out.println("OUT OF HANDS!");
             }
 
-            // Step 2-2 : Use the provided getUserHand() method to allow player to pick the 5-card hand from
-            //            the pocket cards.
+            // Player picks 5 cards
             boolean validChoice = false;
             while (!validChoice) {
                 myHand = getUserHand(myCards);
                 
-                // If the hand is not in the HandsRBT and the HandsRBT is not empty
+                // Check if invalid hand
                 if (!myRBT.isEmpty() && myRBT.findNode(myHand) == null) {
                     System.out.println("Cannot Pass! You still have valid 5-card hands to make a move.");
                 } else {
@@ -138,15 +134,15 @@ public class ModelCode_CardGame {
                 }
             }
 
-            // Step 2-3 :  Save the chosen hand as "PLAYERHAND", and update pocket card and RBT
+            // Save the valid hand, and delete it from the RBT
             if (!myRBT.isEmpty()) {
-                myRBT.deleteInvalidHands(myHand); // Delete the invalid hands from the RBT using deleteInvalidHands()
+                myRBT.deleteInvalidHands(myHand);
             }
-            //  Remove the consumed 5 cards from the pocket cards and reduce the pocket size by 5.
+
             myCards = removeConsumedCards(myCards, myHand);
             myPocketSize -= 5;
 
-            // Step 2-4 : Construct the Aggressive AI Logic
+            // AI moves
             if (aiBST.isEmpty()) {
                 // If out of valid hands, just pick the first 5 cards
                 aiHand = new Hands(aiCards[0], aiCards[1], aiCards[2], aiCards[3], aiCards[4]);
@@ -158,11 +154,10 @@ public class ModelCode_CardGame {
             aiCards = removeConsumedCards(aiCards, aiHand);
             aiPocketSize -= 5;
             
-            // Regenerate AI BST after card removal
             aiBST = new HandsBST();
             generateHandsIntoBST(aiCards, aiBST);
 
-            // Step 2-5 : Determine the result for this round
+            // Print the moves
             System.out.print("My Hand: ");
             myHand.printMyHand();
             System.out.println();
@@ -183,7 +178,7 @@ public class ModelCode_CardGame {
             }
         }
 
-        // Step 3 - Report the Game Results
+        // Results
         System.out.println("==== Game Result ====");
         System.out.printf("Player Score: %d\n", playerScore);
         System.out.printf("AI Score: %d\n", aiScore);
