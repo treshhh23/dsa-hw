@@ -85,25 +85,25 @@ public class ModelCode_CardGame {
         myInputScanner = new Scanner(System.in);
 
         // Step 1 - Initialization
-        // Get 25 cards for both AI and Player using getRandomCards 
+        // Given the CardPool instance, get 25 cards (POCKETSIZE) for both AI and Player.
         aiCards = myCardPool.getRandomCards(POCKETSIZE);
         myCards = myCardPool.getRandomCards(POCKETSIZE);
         
-        // Sort their cards 
+        // Sort their cards using sortCards(). Assign a serial number to Player's cards
         sortCards(aiCards);
         sortCards(myCards);
 
         aiBST = new HandsBST();
         myRBT = new HandsRBT();
         
-        // Populate the data structures with valid hands [cite: 378, 379]
+        // Populate the data structures with valid hands
         generateHandsIntoBST(aiCards, aiBST);
         generateHandsIntoRBT(myCards, myRBT);
 
-        // Step 2 - Game Loop Logic (5 Rounds)
+        // Step 2 - Game Loop Logic
         for (int round = 0; round < 5; round++) {
             
-            // Step 2-1 : Print Both AI and Player Pocket Cards for Strategy Analysis [cite: 368, 369]
+            // Step 2-1 : Print Both AI and Player Pocket Cards for Strategy Analysis
             System.out.println("AI Pocket Cards:");
             for (int i = 0; i < aiPocketSize; i++) {
                 aiCards[i].printCard();
@@ -119,17 +119,18 @@ public class ModelCode_CardGame {
             }
             System.out.println();
 
-            // Check if RBT is empty and notify [cite: 398]
+            // Also check if RBT is empty.  If yes, notify player that he/she is out of moves.
             if (myRBT.isEmpty()) {
                 System.out.println("OUT OF HANDS!");
             }
 
-            // Step 2-2 : Use the provided getUserHand() method to allow player to pick [cite: 399]
+            // Step 2-2 : Use the provided getUserHand() method to allow player to pick the 5-card hand from
+            //            the pocket cards.
             boolean validChoice = false;
             while (!validChoice) {
                 myHand = getUserHand(myCards);
                 
-                // If the hand is not in the HandsRBT and the HandsRBT is not empty [cite: 401]
+                // If the hand is not in the HandsRBT and the HandsRBT is not empty
                 if (!myRBT.isEmpty() && myRBT.findNode(myHand) == null) {
                     System.out.println("Cannot Pass! You still have valid 5-card hands to make a move.");
                 } else {
@@ -137,31 +138,31 @@ public class ModelCode_CardGame {
                 }
             }
 
-            // Step 2-3 : Save the chosen hand as "PLAYERHAND", and update pocket card and RBT [cite: 402]
+            // Step 2-3 :  Save the chosen hand as "PLAYERHAND", and update pocket card and RBT
             if (!myRBT.isEmpty()) {
-                myRBT.deleteInvalidHands(myHand); // Delete hands that are no longer valid [cite: 403]
+                myRBT.deleteInvalidHands(myHand); // Delete the invalid hands from the RBT using deleteInvalidHands()
             }
-            // Remove the consumed 5 cards from the pocket card, and reduce the pocket size by 5 [cite: 404]
+            //  Remove the consumed 5 cards from the pocket cards and reduce the pocket size by 5.
             myCards = removeConsumedCards(myCards, myHand);
             myPocketSize -= 5;
 
-            // Step 2-4 : Construct the Aggressive AI Logic [cite: 405]
+            // Step 2-4 : Construct the Aggressive AI Logic
             if (aiBST.isEmpty()) {
-                // Once out of valid hands, AI should pick any 5 cards to form a "pass" move [cite: 411]
+                // If out of valid hands, just pick the first 5 cards
                 aiHand = new Hands(aiCards[0], aiCards[1], aiCards[2], aiCards[3], aiCards[4]);
             } else {
                 aiHand = aiBST.getMaxHand();
             }
             
-            // Remove the consumed 5 cards from AI pocket cards [cite: 408]
+            // Remove the consumed 5 cards from AI pocket cards
             aiCards = removeConsumedCards(aiCards, aiHand);
             aiPocketSize -= 5;
             
-            // Regenerate AI BST efficiently after card removal [cite: 408]
+            // Regenerate AI BST after card removal
             aiBST = new HandsBST();
             generateHandsIntoBST(aiCards, aiBST);
 
-            // Step 2-5 : Determine the Win/Lose result for this round [cite: 414]
+            // Step 2-5 : Determine the result for this round
             System.out.print("My Hand: ");
             myHand.printMyHand();
             System.out.println();
@@ -170,7 +171,7 @@ public class ModelCode_CardGame {
             aiHand.printMyHand();
             System.out.println();
 
-            // Compare hands, and increment the score for the respective winning party [cite: 416]
+            // Compare hands, and increment the score for whoever wins
             if (myHand.isMyHandLarger(aiHand)) {
                 System.out.println("[RESULT] Player Wins This Round!\n");
                 playerScore++;
@@ -182,7 +183,7 @@ public class ModelCode_CardGame {
             }
         }
 
-        // Step 3 - Report the Game Results [cite: 375, 418]
+        // Step 3 - Report the Game Results
         System.out.println("==== Game Result ====");
         System.out.printf("Player Score: %d\n", playerScore);
         System.out.printf("AI Score: %d\n", aiScore);
@@ -200,9 +201,8 @@ public class ModelCode_CardGame {
     public static void generateHandsIntoBST(Card[] cards, HandsBST thisBST)
     {
         // Implement this if you are using the BST version for the Aggressive AI
-        //Populate all valid hands into the BST
+        // Populate all valid hands into the BST
         int n = cards.length;
-        // Generate all C(N, 5) combinations
         for (int i = 0; i < n - 4; i++) {
             for (int j = i + 1; j < n - 3; j++) {
                 for (int k = j + 1; k < n - 2; k++) {
@@ -224,7 +224,6 @@ public class ModelCode_CardGame {
     {
         // Populate all valid hands into the RBT
         int n = cards.length;
-        // Generate all C(N, 5) combinations
         for (int i = 0; i < n - 4; i++) {
             for (int j = i + 1; j < n - 3; j++) {
                 for (int k = j + 1; k < n - 2; k++) {

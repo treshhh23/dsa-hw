@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Vector;
 
 public class HandsRBT {
@@ -58,20 +59,17 @@ public class HandsRBT {
     // Activity 1 - Design Rotation Algorithm
     /////////////////////////////////////////////////
 
-    // [TODO]: Required Helper Functions for RBT Rotation
     private void rotateLeft(HandsRBTNode thisNode)
     {
         // This method performs the Leftward Node Rotation (rotation between thisNode and its right child)
         // don't forget to update children and parent pointers
         HandsRBTNode rightChild = thisNode.right;
         
-        // Move the right child left subtree into target node right subtree
         thisNode.right = rightChild.left;
         if (rightChild.left != null) {
             rightChild.left.parent = thisNode;
         }
         
-        // Link right child to target nodes parent parent
         rightChild.parent = thisNode.parent;
         if (thisNode.parent == null) {
             root = rightChild;
@@ -81,25 +79,21 @@ public class HandsRBT {
             thisNode.parent.right = rightChild;
         }
         
-        // Put target node on the left of right child
         rightChild.left = thisNode;
         thisNode.parent = rightChild;
     }
 
-    // [TODO]: Required Helper Functions for RBT Rotation
     private void rotateRight(HandsRBTNode thisNode)
     {
         // This method performs the Rightward Node Rotation (rotation between thisNode and its left child)
         // don't forget to update children and parent pointers
         HandsRBTNode leftChild = thisNode.left;
         
-        // Move the left child's right subtree into target nodes left subtree
         thisNode.left = leftChild.right;
         if (leftChild.right != null) {
             leftChild.right.parent = thisNode;
         }
         
-        // Link left child to target nodes parent
         leftChild.parent = thisNode.parent;
         if (thisNode.parent == null) {
             root = leftChild;
@@ -109,7 +103,6 @@ public class HandsRBT {
             thisNode.parent.left = leftChild;
         }
         
-        // Put target node on left child's right side
         leftChild.right = thisNode;
         thisNode.parent = leftChild;
     }
@@ -149,14 +142,7 @@ public class HandsRBT {
    
     public void insert(Hands thisHand)
     {
-        // Step 1: Traverse from the root to find the insertion point as in a BST
-        // If thisHand is already in the RBT, exit 
-        // Else go to step 2
-        // Step 2: Insert the new node. If it is the root, colour it BLACK. Else colour it RED
-        // If a red violation occurs, fix it by invoking the private method fixRedViolation
-        // Else exit
 
-        // If the RBT is empty, insert as root and colour BLACK
         if (root == null) {
             root = new HandsRBTNode(thisHand);
             root.colour = BLACK;
@@ -166,7 +152,6 @@ public class HandsRBT {
         HandsRBTNode current = root;
         HandsRBTNode parent = null;
 
-        // Traverse from the root to find the insertion point
         while (current != null) {
             parent = current;
             if (current.myHand.isMyHandLarger(thisHand)) {
@@ -174,12 +159,10 @@ public class HandsRBT {
             } else if (current.myHand.isMyHandSmaller(thisHand)) {
                 current = current.right;
             } else {
-                // If thisHand is already in the RBT, do nothing
                 return;
             }
         }
 
-        // Insert the new node and colour it red
         HandsRBTNode newNode = new HandsRBTNode(thisHand);
         newNode.colour = RED;
         newNode.parent = parent;
@@ -189,77 +172,72 @@ public class HandsRBT {
         } else {
             parent.right = newNode;
         }
-
+        
         fixRedViolation(newNode);
         
     }
     
     private void fixRedViolation(HandsRBTNode thisNode)
     {
-     // thisNode is node X from lecture notes; Uncle is node S from lecture notes; if Uncle is null, its colour is BLACK   
-     // Recall that there are 3 cases:
-     // Case 1. Red Uncle. (Here you have to check if the red violation moves up the tree; if so, correct it recursively or non-recursively - your choice)
-     // Case 2. Black Uncle & Outergrandchild
-     // Case 3. Black Uncle & Innergrandchild   
+        // thisNode is node X from lecture notes; Uncle is node S from lecture notes; if Uncle is null, its colour is BLACK   
+        // Recall that there are 3 cases:
+        // Case 1. Red Uncle. (Here you have to check if the red violation moves up the tree; if so, correct it recursively or non-recursively - your choice)
+        // Case 2. Black Uncle & Outergrandchild
+        // Case 3. Black Uncle & Innergrandchild   
 
-    // Check iteratively up the tree as long as we haven't reached the root
-    // and a red-red violation exists.
-    while (thisNode != root && thisNode.parent.colour == RED) {
-        HandsRBTNode parent = thisNode.parent;
-        HandsRBTNode grandParent = parent.parent;
+        while (thisNode != root && thisNode.parent.colour == RED) {
+            HandsRBTNode parent = thisNode.parent;
+            HandsRBTNode grandParent = parent.parent;
 
-        // If the parent is a left child of the grandparent
-        if (parent == grandParent.left) {
-            HandsRBTNode uncle = grandParent.right;
+            if (parent == grandParent.left) {
+                HandsRBTNode uncle = grandParent.right;
 
-            // Red Uncle
-            if (uncle != null && uncle.colour == RED) {
-                grandParent.colour = RED;
-                parent.colour = BLACK;
-                uncle.colour = BLACK;
-                thisNode = grandParent; // Move up
-            } else {
-                // Black Uncle & Innergrandchild
-                if (thisNode == parent.right) {
-                    thisNode = parent;
-                    rotateLeft(thisNode);
-                    parent = thisNode.parent;
-                    grandParent = parent.parent;
+                // Case 1: Red Uncle
+                if (uncle != null && uncle.colour == RED) {
+                    grandParent.colour = RED;
+                    parent.colour = BLACK;
+                    uncle.colour = BLACK;
+                    thisNode = grandParent; 
+                } else {
+                    // Case 3: Black Uncle & Innergrandchild
+                    if (thisNode == parent.right) {
+                        thisNode = parent;
+                        rotateLeft(thisNode);
+                        parent = thisNode.parent;
+                        grandParent = parent.parent;
+                    }
+                    // Case 2: Black Uncle & Outergrandchild
+                    parent.colour = BLACK;
+                    grandParent.colour = RED;
+                    rotateRight(grandParent);
                 }
-                // Black Uncle & Outergrandchild
-                parent.colour = BLACK;
-                grandParent.colour = RED;
-                rotateRight(grandParent);
-            }
-        } 
-        // If the parent is a right child of the grandparent
-        else {
-            HandsRBTNode uncle = grandParent.left;
+            } 
+            else {
+                HandsRBTNode uncle = grandParent.left;
 
-            // Red Uncle
-            if (uncle != null && uncle.colour == RED) {
-                grandParent.colour = RED;
-                parent.colour = BLACK;
-                uncle.colour = BLACK;
-                thisNode = grandParent; // Move up
-            } else {
-                // Black Uncle & Innergrandchild
-                if (thisNode == parent.left) {
-                    thisNode = parent;
-                    rotateRight(thisNode);
-                    parent = thisNode.parent;
-                    grandParent = parent.parent;
+                // Case 1: Red Uncle
+                if (uncle != null && uncle.colour == RED) {
+                    grandParent.colour = RED;
+                    parent.colour = BLACK;
+                    uncle.colour = BLACK;
+                    thisNode = grandParent; 
+                } else {
+                    // Case 3: Black Uncle & Innergrandchild
+                    if (thisNode == parent.left) {
+                        thisNode = parent;
+                        rotateRight(thisNode);
+                        parent = thisNode.parent;
+                        grandParent = parent.parent;
+                    }
+                    // Case 2: Black Uncle & Outergrandchild
+                    parent.colour = BLACK;
+                    grandParent.colour = RED;
+                    rotateLeft(grandParent);
                 }
-                // Black Uncle & Outergrandchild
-                parent.colour = BLACK;
-                grandParent.colour = RED;
-                rotateLeft(grandParent);
             }
         }
-    }
 
-    root.colour = BLACK;    
-
+        root.colour = BLACK;    
     }
 
     // Activity 3 - Delete All Hands from RBT with cards from the consumed hand
@@ -276,33 +254,28 @@ public class HandsRBT {
 
     private void deleteHandsWithCard(Card thisCard)
     {
-        Vector<HandsRBTNode> registeredNodes = new Vector<>();
+        ArrayList<HandsRBTNode> registeredNodes = new ArrayList<>();
         
-        // 1. Traverse and register all nodes that contain thisCard
         registerNodesWithCard(root, thisCard, registeredNodes);
         
-        // 2. Iterate through the Vector and delete each registered node
         for (HandsRBTNode node : registeredNodes) {
             delete(node.myHand);
         }
     }
 
-    // Custom helper method for traversing and finding specific cards
-    private void registerNodesWithCard(HandsRBTNode node, Card targetCard, Vector<HandsRBTNode> list) 
+    // Helper method for traversing the tree and finding specific cards
+    private void registerNodesWithCard(HandsRBTNode node, Card targetCard, ArrayList<HandsRBTNode> list) 
     {
         if (node == null) return;
         
-        // Traverse left subtree
         registerNodesWithCard(node.left, targetCard, list);
         
-        // Check current node using the hasCard() method from your Hands class
         if (node.myHand.hasCard(targetCard)) {
             list.add(node);
         }
         
-        // Traverse right subtree
         registerNodesWithCard(node.right, targetCard, list);
-    }     
+    }
     
     // Deletion Method 1 - promote the smallest of the right tree
     private HandsRBTNode findMin(HandsRBTNode thisNode)
@@ -1259,8 +1232,7 @@ public class HandsRBT {
         totalTestCount++;
 
         HandsRBT testRBT = new HandsRBT();
-        Hands myHandsArray[] = new Hands[5];        
-        // We reuse the sequence from Case4L but vary the card suits so it registers as a custom test
+        Hands myHandsArray[] = new Hands[5];       
         myHandsArray[0] = new Hands(new Card(6, 'C'), new Card(3, 'D'), new Card(6, 'C'), new Card(6, 'H'), new Card(3, 'H'));
         myHandsArray[1] = new Hands(new Card(6, 'D'), new Card(6, 'C'), new Card(3, 'H'), new Card(6, 'C'), new Card(6, 'H'));
         myHandsArray[2] = new Hands(new Card(3, 'H'), new Card(5, 'D'), new Card(4, 'C'), new Card(6, 'H'), new Card(2, 'C'));
